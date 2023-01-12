@@ -1,14 +1,62 @@
-# Project
+# Project Cross-Tenant Secure Access to Azure Web Apps and Azure Functions with Private Endpoints
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+The code in this repo creates the architecture as described in the article **TODO**.
 
-As the maintainer of this project, please make a few updates:
+### Pre-requisites
+You will need 2 distinct Azure Tenants.
+It is recommended to create a new resource group in each Tenant.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+### Provider Tenant: 
+  * **DEPLOY VIA BICEP**
+    * required parameters: the username and password for the Virtual Machine.
+  * The Bicep will deploy
+    * a Web App.
+    * a Virtual Network with one Subnet and a Network Security Group allowing RDP access to the Virtual Machine.
+    * a Virtual Machine in the Subnet to test the Private Endpoint connection the the Web App.
+    * the Private DNS Zone linked to the Virtual Network.
+    * a Private Endpoint for the Web App with a NIC in the Subnet and registered in the Private DNS Zone. It will automatically be approved and operational.
+
+After deploying the Provider resource, you should be able to navigate to the Web App URL.
+The Web App URL is returned as an output variable of the Bicep or you retrieve it via the portal.
+* Via the public Internet, you will get a 403 Forbidden page.
+* Via the deployed Virtual Machine, you will get the default Web App page.
+
+_Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
+
+### Consumer Tenant:
+Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provider Tenant. It is available as output parameter of the Bicep or you can retrieve it via the portal.
+
+  * **DEPLOY VIA BICEP**
+    * required parameters: the username and password for the Virtual Machine; the Web App ID of the Provider's Web App.
+
+  * The Bicep will deploy
+    * a Virtual Network with one Subnet and a Network Security Group allowing RDP access to the Virtual Machine.
+    * a Virtual Machine in the Subnet to test the Private Endpoint connection the the Web App.
+    * the Private DNS Zone linked to the Virtual Network
+    * a Private Endpoint for the Provider's Web App with a NIC in the Subnet and registered in the Private DNS Zone. The Provider connection state will be 'pending'.
+
+_Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
+
+After deploying the Consumer Tenant, the Provider must approve the connection.
+This can be done via the Azure Portal, or these AZ CLI commands:
+
+```powershell
+#to be executed by the PROVIDER
+#set the webAppId
+$webAppId='THE PROVIDER WEB APP ID'
+
+#get the private endpoint connections in pending state
+az network private-endpoint-connection list --id $webAppId --query "[?properties.privateLinkServiceConnectionState.status=='Pending']"
+
+#store the Id of the pending private endpoint connection to approve - adjust the index if more than one connection is pending.
+$peId=az network private-endpoint-connection list --id $webAppId --query "[?properties.privateLinkServiceConnectionState.status=='Pending'].{id:id}[0]" --output tsv
+
+#approve the private endpoint connection
+az network private-endpoint-connection approve --description "Approved" --id $peId
+```
+
+### Clean-up
+Delete the resource group in each Tenant.
 
 ## Contributing
 
