@@ -7,7 +7,7 @@ You will need 2 distinct Azure Tenants.
 It is recommended to create a new resource group in each Tenant.
 
 ### Provider Tenant: 
-  * **DEPLOY VIA BICEP**
+  * Deploy via Bicep ``deploy/provider.bicep``
     * required parameters: the username and password for the Virtual Machine.
   * The Bicep will deploy
     * a Web App.
@@ -26,7 +26,7 @@ _Warning: it is not recommended to expose the RDP management port 3386 on the In
 ### Consumer Tenant:
 Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provider Tenant. It is available as output parameter of the Bicep or you can retrieve it via the portal.
 
-  * **DEPLOY VIA BICEP**
+  * Deploy via Bicep ``deploy/consumer.bicep``
     * required parameters: the username and password for the Virtual Machine; the Web App ID of the Provider's Web App.
 
   * The Bicep will deploy
@@ -37,8 +37,10 @@ Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provid
 
 _Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
 
+### Manual Approval:
+
 After deploying the Consumer Tenant, the Provider must approve the connection.
-This can be done via the Azure Portal, or these AZ CLI commands:
+This can be done via the Azure Portal, or these AZ CLI commands (cf. ``manual-approval/approve-pending-connection.ps1``):
 
 ```powershell
 #to be executed by the PROVIDER
