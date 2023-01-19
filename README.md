@@ -2,11 +2,18 @@
 
 The code in this repo creates the architecture as described in the article **TODO**.
 
-### Pre-requisites
-You will need 2 distinct Azure Tenants.
+## Architecture overview
+
+![Architecture with 2 Tenants](images/cross-tenant-secure-access-to-azure-paas-with-private-endpoints.png "Architecture Overview")
+In the overview above, the "Provider" Tenant on the left runs an Azure Web App that a client in the "Consumer" Tenant on the right wants to consume in a secure way via a Private Endpoint.
+
+
+## Pre-requisites
+You will need 2 distinct Azure Tenants: one for the "Provider" part and one for the "Consumer" part.
+
 It is recommended to create a new resource group in each Tenant.
 
-### Provider Tenant: 
+## Provider Tenant: 
   * Deploy via Bicep ``deploy/provider.bicep``
     * required parameters: the username and password for the Virtual Machine.
   * The Bicep will deploy
@@ -23,7 +30,7 @@ The Web App URL is returned as an output variable of the Bicep or you retrieve i
 
 _Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
 
-### Consumer Tenant:
+## Consumer Tenant:
 Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provider Tenant. It is available as output parameter of the Bicep or you can retrieve it via the portal.
 
   * Deploy via Bicep ``deploy/consumer.bicep``
@@ -37,7 +44,7 @@ Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provid
 
 _Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
 
-### Manual Approval:
+## Manual Approval:
 
 After deploying the Consumer Tenant, the Provider must approve the connection.
 This can be done via the Azure Portal, or these AZ CLI commands (cf. ``manual-approval/approve-pending-connection.ps1``):
@@ -57,7 +64,7 @@ $peId=az network private-endpoint-connection list --id $webAppId --query "[?prop
 az network private-endpoint-connection approve --description "Approved" --id $peId
 ```
 
-### Clean-up
+## Clean-up
 Delete the resource group in each Tenant.
 
 ## Contributing
