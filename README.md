@@ -1,6 +1,6 @@
 # Project Cross-Tenant Secure Access to Azure Web Apps and Azure Functions with Private Endpoints
 
-The code in this repo creates the architecture as described in the article **TODO**.
+The code in this repo creates the architecture as described in the article [Cross-tenant secure access to apps with private endpoints](https://learn.microsoft.com/azure/architecture/guide/networking/cross-tenant-secure-access-private-endpoints).
 
 ## Architecture overview
 
