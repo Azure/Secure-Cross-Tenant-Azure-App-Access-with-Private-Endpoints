@@ -1,0 +1,105 @@
+name: Bicep Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'deploy/**/*.bicep'
+      - '.github/workflows/bicep-validation.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'deploy/**/*.bicep'
+      - '.github/workflows/bicep-validation.yml'
+
+jobs:
+  validate-bicep:
+    name: Validate Bicep Files
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Azure CLI
+      uses: azure/CLI@v1
+      with:
+        azcliversion: latest
+        inlineScript: |
+          az version
+        
+    - name: Install Bicep CLI
+      run: |
+        az bicep install
+        az bicep version
+        
+    - name: Validate Bicep syntax
+      run: |
+        echo "Validating Bicep files..."
+        
+        # Find all .bicep files and validate them
+        find deploy/ -name "*.bicep" -type f | while read -r bicep_file; do
+          echo "Validating: $bicep_file"
+          
+          # Check syntax and build
+          if az bicep build --file "$bicep_file" --stdout > /dev/null; then
+            echo "✅ $bicep_file - Syntax valid"
+          else
+            echo "❌ $bicep_file - Syntax error"
+            exit 1
+          fi
+        done
+        
+        echo "All Bicep files passed validation!"
+        
+    - name: Validate specific templates
+      run: |
+        echo "Running detailed validation for main templates..."
+        
+        # Validate provider.bicep if it exists
+        if [ -f "deploy/provider.bicep" ]; then
+          echo "Validating provider.bicep..."
+          az bicep build --file deploy/provider.bicep --stdout > /dev/null
+          echo "✅ provider.bicep validated successfully"
+        fi
+        
+        # Validate consumer.bicep if it exists
+        if [ -f "deploy/consumer.bicep" ]; then
+          echo "Validating consumer.bicep..."
+          az bicep build --file deploy/consumer.bicep --stdout > /dev/null
+          echo "✅ consumer.bicep validated successfully"
+        fi
+        
+        # Validate module files
+        if [ -d "deploy/module" ]; then
+          echo "Validating module files..."
+          find deploy/module/ -name "*.bicep" -type f | while read -r module_file; do
+            echo "Validating module: $module_file"
+            az bicep build --file "$module_file" --stdout > /dev/null
+            echo "✅ $(basename "$module_file") validated successfully"
+          done
+        fi
+        
+    - name: Check for best practices
+      run: |
+        echo "Checking Bicep best practices..."
+        
+        # Check for common issues
+        echo "Checking for hardcoded values..."
+        if grep -r "eastus\|westus\|centralus" deploy/ --include="*.bicep" | grep -v "@description\|param\|var"; then
+          echo "⚠️  Warning: Found potential hardcoded regions"
+        fi
+        
+        echo "Checking for @description decorators on parameters..."
+        bicep_files=$(find deploy/ -name "*.bicep" -type f)
+        for file in $bicep_files; do
+          # Check if all params have descriptions
+          param_count=$(grep -c "^param " "$file" || true)
+          desc_count=$(grep -B1 "^param " "$file" | grep -c "@description" || true)
+          
+          if [ "$param_count" -gt 0 ] && [ "$desc_count" -lt "$param_count" ]; then
+            echo "⚠️  Warning: $file has parameters without @description decorators"
+          fi
+        done
+        
+        echo "Best practices check completed!"
