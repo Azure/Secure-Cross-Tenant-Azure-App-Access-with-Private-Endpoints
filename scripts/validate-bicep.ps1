@@ -69,7 +69,7 @@ foreach ($file in $bicepFiles) {
         $content = Get-Content $file.FullName -Raw
         
         # Check for @description on parameters
-        $paramLines = Select-String -Pattern "^param " -Path $file.FullName
+        $paramLines = Select-String -Pattern "^\s*param\s+" -Path $file.FullName
         $descriptionLines = Select-String -Pattern "@description" -Path $file.FullName
         
         if ($paramLines.Count -gt $descriptionLines.Count) {
