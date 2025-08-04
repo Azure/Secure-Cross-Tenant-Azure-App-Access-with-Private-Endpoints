@@ -1,5 +1,5 @@
 #to be executed by the PROVIDER
-#set the webAppId
+#set the webAppId as provided in the output of the provider.bicep deployment.
 $webAppId='THE PROVIDER WEBAPPID'
 
 #get the private endpoint connection in pending state

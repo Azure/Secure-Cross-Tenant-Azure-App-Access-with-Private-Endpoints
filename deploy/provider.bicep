@@ -46,33 +46,81 @@ param vmName string = 'vm-pe-test'
 @description('Size of the virtual machine.')
 param vmSize string = 'Standard_B2s'
 
+@description('Enable Application Insights and Log Analytics for monitoring.')
+param enableMonitoring bool = true
+
 
 // Creation of the Web App
-resource appServicePlan 'Microsoft.Web/serverfarms@2020-12-01' = {
+resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: appServicePlanName
   location: location
   sku: {
     name: 'S1'
     capacity: 1
   }
+  properties: {
+    // Enable zone redundancy for better availability
+    zoneRedundant: false // Set to true for production workloads
+  }
 }
 
-resource webApplication 'Microsoft.Web/sites@2021-01-15' = {
+resource webApplication 'Microsoft.Web/sites@2024-04-01' = {
   name: webAppName
   location: location
   tags: {
     'hidden-related:${resourceGroup().id}/providers/Microsoft.Web/serverfarms/appServicePlan': 'Resource'
+    Environment: 'Demo'
+    Purpose: 'Cross-Tenant-Private-Endpoint-Demo'
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
   properties: {
     serverFarmId: appServicePlan.id
+    clientAffinityEnabled: false // Improves performance for stateless apps
+    httpsOnly: true // Force HTTPS-only traffic
+    publicNetworkAccess: 'Disabled' // Disable public access since we're using private endpoints
+    siteConfig: {
+      minTlsVersion: '1.2' // Enforce minimum TLS version
+      scmMinTlsVersion: '1.2' // Enforce minimum TLS version for SCM
+      ftpsState: 'Disabled' // Disable FTP
+      alwaysOn: false //  Set to true for production workloads to keep the app warm
+      http20Enabled: true // Enable HTTP/2
+      use32BitWorkerProcess: false // Use 64-bit for better performance
+      //healthCheckPath: '/health' // Add health check endpoint (you'll need to implement this)
+      ipSecurityRestrictionsDefaultAction: 'Deny' // Deny by default
+      scmIpSecurityRestrictionsDefaultAction: 'Deny' // Deny SCM by default
+    }
   }
 }
 
-@description('The URL of the web application.')
-output webApplicationUrl string = webApplication.properties.defaultHostName
+// Monitoring module (optional)
+module monitoring 'module/monitoring.bicep' = if (enableMonitoring) {
+  name: 'monitoring'
+  params: {
+    location: location
+    uniqueSuffix: uniqueString(resourceGroup().id)
+    tags: {
+      Environment: 'Demo'
+      Purpose: 'Cross-Tenant-Private-Endpoint-Demo'
+    }
+    retentionInDays: 30
+    applicationType: 'web'
+  }
+}
 
-@description('The ID of the web application. This is used to create the private endpoint in the Consumer Tenant.')
-output webApplicationId string = webApplication.id
+// Configure Application Insights settings if monitoring is enabled
+resource webAppSettings 'Microsoft.Web/sites/config@2024-04-01' = if (enableMonitoring) {
+  name: 'appsettings'
+  parent: webApplication
+  properties: {
+    APPINSIGHTS_INSTRUMENTATIONKEY: monitoring!.outputs.applicationInsightsInstrumentationKey
+    APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring!.outputs.applicationInsightsConnectionString
+    ApplicationInsightsAgent_EXTENSION_VERSION: '~3'
+    APPINSIGHTS_PROFILERFEATURE_VERSION: '1.0.0'
+    APPINSIGHTS_SNAPSHOTFEATURE_VERSION: '1.0.0'
+  }
+}
 
 // Creation of the virtual network and subnet and NSG
 module vnet 'module/vnet.bicep'= {
@@ -87,9 +135,13 @@ module vnet 'module/vnet.bicep'= {
 
 // Creation private endpoint to the Web App
 // the privateLinkServiceConnections will create an auto-approve link
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: privateEndpointName
   location: location
+  tags: {
+    Environment: 'Demo'
+    Purpose: 'Cross-Tenant-Private-Endpoint-Demo'
+  }
   properties: {
     subnet: {
       id: vnet.outputs.subnetId
@@ -105,6 +157,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = {
         }
       }
     ]
+    customNetworkInterfaceName: '${privateEndpointName}-nic'
   }
 }
 
@@ -130,7 +183,7 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
   }
 }
 
-resource privateDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+resource privateDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = {
   name: privateDnsGroupName
   properties: {
     privateDnsZoneConfigs: [
@@ -159,3 +212,14 @@ module virtualMachine 'module/vm.bicep' = {
     vmSize: vmSize
   }
 }
+
+
+@description('The URL of the web application.')
+output webApplicationUrl string = 'https://${webApplication.properties.defaultHostName}'
+
+@description('The ID of the web application. This is used to create the private endpoint in the Consumer Tenant.')
+output webApplicationId string = webApplication.id
+
+@description('The hostname of the virtual machine for testing.')
+output vmHostname string = virtualMachine.outputs.vmHostname
+
