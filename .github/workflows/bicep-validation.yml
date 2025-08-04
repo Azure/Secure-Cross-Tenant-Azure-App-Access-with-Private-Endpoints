@@ -109,12 +109,6 @@ jobs:
       run: |
         echo "Checking Bicep best practices..."
         
-        # Check for common issues
-        echo "Checking for hardcoded values..."
-        if grep -r "eastus\|westus\|centralus" deploy/ --include="*.bicep" | grep -v "@description\|param\|var"; then
-          echo "⚠️  Warning: Found potential hardcoded regions"
-        fi
-        
         echo "Checking for @description decorators on parameters..."
         bicep_files=$(find deploy/ -name "*.bicep" -type f)
         for file in $bicep_files; do

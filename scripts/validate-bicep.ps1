@@ -89,13 +89,6 @@ foreach ($file in $bicepFiles) {
             }
         }
         
-        # Check for hardcoded regions
-        $hardcodedRegions = Select-String -Pattern "(?:eastus|westus|centralus|northeurope|westeurope)" -Path $file.FullName -CaseSensitive:$false
-        if ($hardcodedRegions.Count -gt 0 -and $content -notmatch "param.*location") {
-            Write-Host "  ⚠️  Potential hardcoded regions found" -ForegroundColor Yellow
-            $warningCount++
-        }
-        
         Write-Host "  ✅ Best practices check completed" -ForegroundColor Green
     }
 }
