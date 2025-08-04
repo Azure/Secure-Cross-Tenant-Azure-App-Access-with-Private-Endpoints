@@ -2,12 +2,10 @@ name: Bicep Validation
 
 on:
   push:
-    branches: [ main, develop ]
     paths:
       - 'deploy/**/*.bicep'
       - '.github/workflows/bicep-validation.yml'
   pull_request:
-    branches: [ main, develop ]
     paths:
       - 'deploy/**/*.bicep'
       - '.github/workflows/bicep-validation.yml'

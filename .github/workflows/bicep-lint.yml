@@ -2,12 +2,10 @@ name: Bicep Lint and Security Check
 
 on:
   push:
-    branches: [ main, develop ]
     paths:
       - 'deploy/**/*.bicep'
       - '.github/workflows/bicep-lint.yml'
   pull_request:
-    branches: [ main, develop ]
     paths:
       - 'deploy/**/*.bicep'
       - '.github/workflows/bicep-lint.yml'

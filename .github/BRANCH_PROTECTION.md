@@ -39,14 +39,17 @@ To ensure code quality and security, the following status checks should be confi
 ## Workflow Triggers
 
 The validation workflows will run automatically on:
-- Push to `main` or `develop` branches (when Bicep files change)
-- Pull requests targeting `main` or `develop` branches (when Bicep files change)
+- Push to **any branch** (when Bicep files change)
+- Pull requests targeting **any branch** (when Bicep files change)
 - Manual workflow dispatch
+
+This ensures comprehensive validation across all branches and development workflows.
 
 ## Benefits
 
-- **Early Error Detection**: Catch syntax errors and issues before code review
-- **Security Compliance**: Ensure security best practices are followed
-- **Code Quality**: Maintain consistent coding standards
-- **Automated Validation**: Reduce manual review overhead
+- **Early Error Detection**: Catch syntax errors and issues before code review on any branch
+- **Security Compliance**: Ensure security best practices are followed across all development
+- **Code Quality**: Maintain consistent coding standards regardless of branching strategy
+- **Automated Validation**: Reduce manual review overhead with comprehensive coverage
 - **Documentation**: Generate ARM templates for transparency
+- **Branch Flexibility**: Support any Git workflow (GitFlow, GitHub Flow, feature branches, etc.)
