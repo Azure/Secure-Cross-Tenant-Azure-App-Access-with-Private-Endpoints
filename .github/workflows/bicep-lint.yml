@@ -1,0 +1,145 @@
+name: Bicep Lint and Security Check
+
+on:
+  push:
+    paths:
+      - 'deploy/**/*.bicep'
+      - '.github/workflows/bicep-lint.yml'
+  pull_request:
+    paths:
+      - 'deploy/**/*.bicep'
+      - '.github/workflows/bicep-lint.yml'
+
+jobs:
+  bicep-lint:
+    name: Bicep Linting and Security
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Bicep CLI
+      run: |
+        # Download and install Bicep CLI directly
+        echo "Installing Bicep CLI..."
+        curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+        chmod +x ./bicep
+        sudo mv ./bicep /usr/local/bin/bicep
+        
+        # Verify installation
+        bicep --version
+        echo "Bicep CLI installed successfully"
+        
+    - name: Run Bicep Linter
+      run: |
+        echo "Running Bicep linter..."
+        
+        # Find and lint all .bicep files
+        exit_code=0
+        find deploy/ -name "*.bicep" -type f | while read -r bicep_file; do
+          echo "Linting: $bicep_file"
+          
+          # Build with verbose output to show warnings
+          if bicep build "$bicep_file" --stdout > /dev/null 2>lint_output.txt; then
+            if [ -s lint_output.txt ]; then
+              echo "⚠️  Linting warnings for $bicep_file:"
+              cat lint_output.txt
+            else
+              echo "✅ $bicep_file - No linting issues"
+            fi
+          else
+            echo "❌ $bicep_file - Linting failed"
+            cat lint_output.txt
+            exit_code=1
+          fi
+          rm -f lint_output.txt
+        done
+        
+        if [ $exit_code -ne 0 ]; then
+          exit 1
+        fi
+        
+    - name: Security and Best Practices Check
+      run: |
+        echo "Running security and best practices checks..."
+        
+        # Check for security issues
+        echo "Checking for security best practices..."
+        
+        # Check for public IP assignments
+        if grep -r "publicIPAllocationMethod.*Static\|publicIPAllocationMethod.*Dynamic" deploy/ --include="*.bicep"; then
+          echo "⚠️  Found public IP allocations - ensure they are necessary"
+        fi
+        
+        # Check for NSG rules allowing broad access
+        if grep -r "0.0.0.0/0\|\*" deploy/ --include="*.bicep" | grep -i "sourceAddressPrefix\|destinationAddressPrefix"; then
+          echo "⚠️  Found potentially broad network access rules"
+        fi
+        
+        # Check for admin credentials in plain text (should not happen with @secure())
+        if grep -r "adminPassword.*=" deploy/ --include="*.bicep" | grep -v "@secure"; then
+          echo "❌ Found potential plain text passwords"
+          exit 1
+        fi
+        
+        # Check for proper use of @secure() decorator
+        echo "Checking for proper use of @secure() decorator..."
+        
+        # Check for sensitive parameter names without @secure decorator
+        # Look for parameters with sensitive names that don't have @secure on the preceding line
+        find deploy/ -name "*.bicep" -type f | while read -r bicep_file; do
+          # Check for parameters containing sensitive keywords
+          if grep -n -i "param.*\(password\|secret\|key\|token\|credential\)" "$bicep_file" > /dev/null; then
+            echo "Checking $bicep_file for @secure() usage..."
+            
+            # Get line numbers of sensitive parameters
+            grep -n -i "param.*\(password\|secret\|key\|token\|credential\)" "$bicep_file" | while IFS=: read -r line_num line_content; do
+              # Check if the previous line contains @secure
+              prev_line=$((line_num - 1))
+              if [ $prev_line -gt 0 ]; then
+                prev_content=$(sed -n "${prev_line}p" "$bicep_file")
+                if ! echo "$prev_content" | grep -q "@secure"; then
+                  echo "⚠️  Parameter at line $line_num in $bicep_file might need @secure() decorator:"
+                  echo "    $line_content"
+                fi
+              else
+                echo "⚠️  Parameter at line $line_num in $bicep_file might need @secure() decorator:"
+                echo "    $line_content"
+              fi
+            done
+          fi
+        done
+        
+        # Check for latest API versions (updated for 2024-2025)
+        echo "Checking for outdated API versions..."
+        if grep -r "@201[0-9]\|@202[0-2]" deploy/ --include="*.bicep"; then
+          echo "⚠️  Found potentially outdated API versions (2010-2022). Consider updating to 2024 versions."
+        fi
+        
+        echo "Security check completed!"
+        
+    - name: Generate ARM Templates
+      run: |
+        echo "Generating ARM templates for validation..."
+        
+        # Create output directory
+        mkdir -p generated-arm
+        
+        # Generate ARM templates from Bicep
+        find deploy/ -name "*.bicep" -type f | while read -r bicep_file; do
+          output_name=$(basename "$bicep_file" .bicep).json
+          output_path="generated-arm/$output_name"
+          
+          echo "Generating ARM template: $output_path"
+          bicep build "$bicep_file" --outfile "$output_path"
+        done
+        
+        echo "ARM template generation completed!"
+        
+    - name: Upload ARM Templates as Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-arm-templates
+        path: generated-arm/
+        retention-days: 7

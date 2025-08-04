@@ -1,0 +1,19 @@
+# CODEOWNERS file for Secure Cross Tenant Azure App Access with Private Endpoints
+
+# Global ownership - all files require review from Azure team
+* @Azure/secure-azure-app-access-private-endpoints
+
+# Bicep templates and infrastructure code
+/deploy/ @Azure/secure-azure-app-access-private-endpoints
+
+# Documentation
+*.md @Azure/secure-azure-app-access-private-endpoints
+/images/ @Azure/secure-azure-app-access-private-endpoints
+
+# GitHub workflows and automation
+/.github/ @Azure/secure-azure-app-access-private-endpoints
+/.github/workflows/ @Azure/secure-azure-app-access-private-endpoints
+
+# Scripts and automation
+/scripts/ @Azure/secure-azure-app-access-private-endpoints
+/manual-approval/ @Azure/secure-azure-app-access-private-endpoints
