@@ -122,27 +122,6 @@ resource webAppSettings 'Microsoft.Web/sites/config@2024-04-01' = if (enableMoni
   }
 }
 
-@description('The URL of the web application.')
-output webApplicationUrl string = 'https://${webApplication.properties.defaultHostName}'
-
-@description('The ID of the web application. This is used to create the private endpoint in the Consumer Tenant.')
-output webApplicationId string = webApplication.id
-
-@description('The hostname of the virtual machine for testing.')
-output vmHostname string = virtualMachine.outputs.vmHostname
-
-@description('The private IP address of the private endpoint.')
-output privateEndpointIP string = privateEndpoint.properties.networkInterfaces[0].properties.ipConfigurations[0].properties.privateIPAddress
-
-@description('The Application Insights instrumentation key (if monitoring is enabled).')
-output applicationInsightsInstrumentationKey string = enableMonitoring ? monitoring!.outputs.applicationInsightsInstrumentationKey : ''
-
-@description('The Application Insights connection string (if monitoring is enabled).')
-output applicationInsightsConnectionString string = enableMonitoring ? monitoring!.outputs.applicationInsightsConnectionString : ''
-
-@description('The resource ID of the private DNS zone.')
-output privateDnsZoneId string = privateDnsZone.id
-
 // Creation of the virtual network and subnet and NSG
 module vnet 'module/vnet.bicep'= {
   name: 'vnet'
@@ -233,3 +212,14 @@ module virtualMachine 'module/vm.bicep' = {
     vmSize: vmSize
   }
 }
+
+
+@description('The URL of the web application.')
+output webApplicationUrl string = 'https://${webApplication.properties.defaultHostName}'
+
+@description('The ID of the web application. This is used to create the private endpoint in the Consumer Tenant.')
+output webApplicationId string = webApplication.id
+
+@description('The hostname of the virtual machine for testing.')
+output vmHostname string = virtualMachine.outputs.vmHostname
+

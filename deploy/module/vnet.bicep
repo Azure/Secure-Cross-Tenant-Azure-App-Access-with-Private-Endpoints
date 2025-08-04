@@ -21,9 +21,6 @@ param enableDdosProtection bool = false
 @description('DDoS protection plan resource ID.')
 param ddosProtectionPlanId string = ''
 
-@description('Enable VM protection for the virtual network.')
-param enableVmProtection bool = false
-
 @description('Name of the subnet to create.')
 var subnetName = 'mySubnet'
 
@@ -155,7 +152,6 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
     ddosProtectionPlan: enableDdosProtection && !empty(ddosProtectionPlanId) ? {
       id: ddosProtectionPlanId
     } : null
-    enableVmProtection: enableVmProtection
     // Enhanced DNS settings for better name resolution
     dhcpOptions: {
       dnsServers: [] // Use Azure-provided DNS by default
@@ -224,5 +220,4 @@ output networkConfiguration object = {
   privateEndpointsEnabled: vnet.properties.subnets[0].properties.privateEndpointNetworkPolicies == 'Disabled'
   outboundInternetAccess: vnet.properties.subnets[0].properties.defaultOutboundAccess
   ddosProtectionEnabled: vnet.properties.enableDdosProtection
-  vmProtectionEnabled: vnet.properties.enableVmProtection
 }

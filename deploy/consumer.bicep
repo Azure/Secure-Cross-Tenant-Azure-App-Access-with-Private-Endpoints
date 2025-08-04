@@ -132,3 +132,6 @@ module virtualMachine 'module/vm.bicep' = {
     vmSize: vmSize
   }
 }
+
+@description('The hostname of the virtual machine for testing.')
+output vmHostname string = virtualMachine.outputs.vmHostname

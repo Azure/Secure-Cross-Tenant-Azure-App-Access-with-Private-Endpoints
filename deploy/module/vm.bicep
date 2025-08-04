@@ -100,18 +100,13 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       adminUsername: username
       adminPassword: password
       allowExtensionOperations: true
-      requireGuestProvisionSignal: false
       windowsConfiguration: {
         provisionVMAgent: true
         enableAutomaticUpdates: true
         patchSettings: {
-          patchMode: 'AutomaticByPlatform' // Enable automatic patching
-          assessmentMode: 'AutomaticByPlatform'
-          automaticByPlatformSettings: {
-            rebootSetting: 'IfRequired' // Reboot if required for patches
-            bypassPlatformSafetyChecksOnUserSchedule: false
-          }
-          enableHotpatching: false // Can be enabled for supported VM sizes
+          patchMode: 'AutomaticByOS' // Use OS-managed updates for Windows 11 desktop editions
+          assessmentMode: 'ImageDefault' // Use default assessment for desktop editions
+          enableHotpatching: false // Not supported for desktop editions
         }
         timeZone: 'UTC' // Set explicit timezone
       }
@@ -120,7 +115,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       imageReference: {
         publisher: 'microsoftwindowsdesktop'
         offer: 'windows-11'
-        sku: 'win11-22h2-pro' // Updated to newer Windows 11 version
+        sku: 'win11-24h2-pro' // Windows 11 Pro 24H2
         version: 'latest'
       }
       osDisk: {
@@ -160,22 +155,38 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
         secureBootEnabled: true // Enable Secure Boot
         vTpmEnabled: true // Enable virtual TPM
       }
-      encryptionAtHost: false // Can be enabled if supported by VM size
+      // Note: encryptionAtHost requires the 'Microsoft.Compute/EncryptionAtHost' feature
+      // to be enabled at the subscription level. Enable with:
+      // az feature register --namespace Microsoft.Compute --name EncryptionAtHost
+      // encryptionAtHost: true 
     }
     priority: 'Regular' // Regular priority (not Spot)
     evictionPolicy: null // Not applicable for regular VMs
     billingProfile: null // Not applicable for regular VMs
     extensionsTimeBudget: 'PT1H30M' // 90 minutes for extensions
-    // Enable scheduled events for better maintenance handling
-    scheduledEventsProfile: {
-      terminateNotificationProfile: {
-        enable: true
-        notBeforeTimeout: 'PT5M' // 5 minutes notification before termination
-      }
-      osImageNotificationProfile: {
-        enable: true
-        notBeforeTimeout: 'PT15M' // 15 minutes notification before OS image updates
-      }
+    // Note: scheduledEventsProfile is primarily designed for server workloads
+    // and may not be fully supported on Windows 11 desktop editions
+  }
+}
+
+// Auto-shutdown configuration - shuts down VM at 20:00 UTC daily
+resource autoShutdown 'Microsoft.DevTestLab/schedules@2018-09-15' = {
+  name: 'shutdown-computevm-${vmName}'
+  location: location
+  tags: tags
+  properties: {
+    status: 'Enabled'
+    taskType: 'ComputeVmShutdownTask'
+    dailyRecurrence: {
+      time: '2000' // 20:00 UTC (8:00 PM)
+    }
+    timeZoneId: 'UTC'
+    targetResourceId: vm.id
+    notificationSettings: {
+      status: 'Disabled' // No prior notification as requested
+      timeInMinutes: 0
+      emailRecipient: ''
+      notificationLocale: 'en'
     }
   }
 }
@@ -210,5 +221,13 @@ output securityConfiguration object = {
   trustedLaunchEnabled: vm.properties.securityProfile.securityType == 'TrustedLaunch'
   secureBootEnabled: vm.properties.securityProfile.uefiSettings.secureBootEnabled
   vTpmEnabled: vm.properties.securityProfile.uefiSettings.vTpmEnabled
-  automaticPatchingEnabled: vm.properties.osProfile.windowsConfiguration.patchSettings.patchMode == 'AutomaticByPlatform'
+  automaticPatchingEnabled: vm.properties.osProfile.windowsConfiguration.patchSettings.patchMode == 'AutomaticByOS'
+}
+
+@description('The auto-shutdown configuration of the virtual machine.')
+output autoShutdownConfiguration object = {
+  enabled: autoShutdown.properties.status == 'Enabled'
+  shutdownTime: '20:00 UTC'
+  timeZone: autoShutdown.properties.timeZoneId
+  notificationsEnabled: autoShutdown.properties.notificationSettings.status == 'Enabled'
 }
