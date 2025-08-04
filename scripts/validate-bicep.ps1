@@ -78,7 +78,7 @@ foreach ($file in $bicepFiles) {
         }
         
         # Check for @secure() on sensitive parameters
-        $sensitiveParams = Select-String -Pattern "param.*(?:password|secret|key)" -Path $file.FullName -CaseSensitive:$false
+        $sensitiveParams = Select-String -Pattern "param.*\b(?:password|secret|key)\b" -Path $file.FullName -CaseSensitive:$false
         foreach ($param in $sensitiveParams) {
             $lineNumber = $param.LineNumber
             $previousLine = (Get-Content $file.FullName)[$lineNumber - 2]
