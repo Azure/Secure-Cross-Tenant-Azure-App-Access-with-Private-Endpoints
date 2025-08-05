@@ -58,7 +58,7 @@ module vnet 'module/vnet.bicep'= {
 
 // Creation private endpoint to Tenant Web App
 // the manualPrivateLinkServiceConnections will create a pending connection request
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: privateEndpointName
   location: location
   properties: {
@@ -81,7 +81,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
 }
 
 // Create Private DNS and Private DNS Virtual Network Link
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: privateDnsZoneName
   location: 'global'
   properties: {}
@@ -90,7 +90,7 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   ]
 }
 
-resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   parent: privateDnsZone
   name: '${privateDnsZoneName}-link'
   location: 'global'
