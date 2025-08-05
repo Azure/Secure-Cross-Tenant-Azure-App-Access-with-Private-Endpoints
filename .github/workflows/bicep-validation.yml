@@ -138,12 +138,31 @@ jobs:
         echo "Checking for @description decorators on parameters..."
         bicep_files=$(find deploy/ -name "*.bicep" -type f)
         for file in $bicep_files; do
-          # Check if all params have descriptions
-          param_count=$(grep -c "^param " "$file" || true)
-          desc_count=$(grep -B1 "^param " "$file" | grep -c "@description" || true)
+          # Get all parameter names
+          params=$(grep "^[[:space:]]*param[[:space:]]" "$file" | sed 's/^[[:space:]]*param[[:space:]]\+\([^[:space:]]*\).*/\1/' || true)
           
-          if [ "$param_count" -gt 0 ] && [ "$desc_count" -lt "$param_count" ]; then
-            echo "⚠️  Warning: $file has parameters without @description decorators"
+          if [ -n "$params" ]; then
+            echo "Checking: $file"
+            missing_count=0
+            
+            while IFS= read -r param_name; do
+              # Check if this parameter has a @description decorator before it
+              param_line=$(grep -n "^[[:space:]]*param[[:space:]]\+$param_name[[:space:]]" "$file" | cut -d: -f1)
+              
+              if [ -n "$param_line" ]; then
+                # Look for @description in the few lines before the parameter
+                desc_found=$(sed -n "$((param_line-5)),$((param_line-1))p" "$file" 2>/dev/null | grep "@description" || true)
+                
+                if [ -z "$desc_found" ]; then
+                  echo "⚠️  Parameter '$param_name' missing @description decorator"
+                  missing_count=$((missing_count + 1))
+                fi
+              fi
+            done <<< "$params"
+            
+            if [ $missing_count -eq 0 ]; then
+              echo "✅ All parameters in $file have @description decorators"
+            fi
           fi
         done
         
