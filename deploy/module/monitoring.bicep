@@ -1,6 +1,7 @@
 // Monitoring Module - Log Analytics Workspace and Application Insights
+
 @description('Location for all resources.')
-param location string
+param location string = resourceGroup().location
 
 @description('Unique suffix for resource naming.')
 param uniqueSuffix string

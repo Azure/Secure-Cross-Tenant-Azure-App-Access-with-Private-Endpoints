@@ -150,8 +150,19 @@ jobs:
               param_line=$(grep -n "^[[:space:]]*param[[:space:]]\+$param_name[[:space:]]" "$file" | cut -d: -f1)
               
               if [ -n "$param_line" ]; then
-                # Look for @description in the few lines before the parameter
-                desc_found=$(sed -n "$((param_line-5)),$((param_line-1))p" "$file" 2>/dev/null | grep "@description" || true)
+                # Calculate start line (don't go below line 1)
+                start_line=$((param_line - 5))
+                if [ $start_line -lt 1 ]; then
+                  start_line=1
+                fi
+                end_line=$((param_line - 1))
+                
+                # Look for @description in the lines before the parameter
+                if [ $end_line -ge $start_line ]; then
+                  desc_found=$(sed -n "${start_line},${end_line}p" "$file" 2>/dev/null | grep "@description" || true)
+                else
+                  desc_found=""
+                fi
                 
                 if [ -z "$desc_found" ]; then
                   echo "⚠️  Parameter '$param_name' missing @description decorator"

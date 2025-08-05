@@ -1,3 +1,5 @@
+// the consumer template creates a Virtual Machine and connects it to a Web App in another tenant using a Private Endpoint
+
 @description('Location for all resources.')
 param location string = resourceGroup().location
 

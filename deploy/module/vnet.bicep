@@ -1,4 +1,5 @@
 // Virtual Network Module with Security Best Practices and Outbound Internet Access
+
 @description('Location for all resources.')
 param location string = resourceGroup().location
 

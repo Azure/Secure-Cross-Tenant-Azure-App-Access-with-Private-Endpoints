@@ -1,3 +1,5 @@
+// the Provider template creates a Web App with a Private Endpoint and a Virtual Machine for testing
+
 @description('Location for all resources.')
 param location string = resourceGroup().location
 
