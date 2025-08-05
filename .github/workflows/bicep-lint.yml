@@ -10,26 +10,59 @@ on:
       - 'deploy/**/*.bicep'
       - '.github/workflows/bicep-lint.yml'
 
+# Security: Limit GITHUB_TOKEN permissions to minimum required
+permissions:
+  contents: read        # Required to checkout code
+  actions: read        # Required to read workflow artifacts
+
 jobs:
   bicep-lint:
     name: Bicep Linting and Security
     runs-on: ubuntu-latest
     
+    # Job-level permissions (more restrictive than workflow-level)
+    permissions:
+      contents: read    # Read repository contents
+      actions: read     # Read workflow artifacts
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Security: Don't persist credentials after checkout
+        persist-credentials: false
       
     - name: Setup Bicep CLI
       run: |
-        # Download and install Bicep CLI directly
+        # Security: Download and install Bicep CLI directly from official GitHub releases
         echo "Installing Bicep CLI..."
-        curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+        
+        # Verify we're downloading from the official Azure/bicep repository
+        BICEP_URL="https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64"
+        echo "Downloading from: $BICEP_URL"
+        
+        # Download with additional security options
+        curl -Lo bicep "$BICEP_URL" \
+          --fail \
+          --silent \
+          --show-error \
+          --location \
+          --retry 3 \
+          --max-time 300
+          
+        # Verify the download was successful and file is not empty
+        if [ ! -s bicep ]; then
+          echo "❌ Failed to download Bicep CLI or file is empty"
+          exit 1
+        fi
+        
+        # Make executable and move to system path
         chmod +x ./bicep
         sudo mv ./bicep /usr/local/bin/bicep
         
-        # Verify installation
+        # Verify installation and show version
         bicep --version
-        echo "Bicep CLI installed successfully"
+        echo "✅ Bicep CLI installed successfully"
         
     - name: Run Bicep Linter
       run: |
