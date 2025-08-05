@@ -20,11 +20,6 @@ jobs:
     name: Validate Bicep Files
     runs-on: ubuntu-latest
     
-    # Job-level permissions (more restrictive than workflow-level)
-    permissions:
-      contents: read    # Read repository contents
-      actions: read     # Read workflow artifacts
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
