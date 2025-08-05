@@ -1,3 +1,5 @@
+// the consumer template creates a Virtual Machine and connects it to a Web App in another tenant using a Private Endpoint
+
 @description('Location for all resources.')
 param location string = resourceGroup().location
 
@@ -58,7 +60,7 @@ module vnet 'module/vnet.bicep'= {
 
 // Creation private endpoint to Tenant Web App
 // the manualPrivateLinkServiceConnections will create a pending connection request
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: privateEndpointName
   location: location
   properties: {
@@ -81,7 +83,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
 }
 
 // Create Private DNS and Private DNS Virtual Network Link
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: privateDnsZoneName
   location: 'global'
   properties: {}
@@ -90,7 +92,7 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   ]
 }
 
-resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   parent: privateDnsZone
   name: '${privateDnsZoneName}-link'
   location: 'global'
@@ -103,7 +105,7 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
 }
 
 // Add Private Endpoint in Private DNS Zone
-resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = {
   name: privateDnsGroupName
   properties: {
     privateDnsZoneConfigs: [

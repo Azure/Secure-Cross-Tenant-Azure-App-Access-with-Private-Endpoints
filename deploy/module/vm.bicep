@@ -1,6 +1,7 @@
 // Virtual Machine Module with Security Best Practices
+
 @description('Location for all resources.')
-param location string
+param location string = resourceGroup().location
 
 @description('Id of the subnet.')
 param subnetId string

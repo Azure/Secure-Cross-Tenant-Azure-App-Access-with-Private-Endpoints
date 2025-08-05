@@ -10,6 +10,11 @@ on:
       - 'deploy/**/*.bicep'
       - '.github/workflows/bicep-validation.yml'
 
+# Security: Limit GITHUB_TOKEN permissions to minimum required
+permissions:
+  contents: read        # Required to checkout code
+  actions: read        # Required to read workflow artifacts
+
 jobs:
   validate-bicep:
     name: Validate Bicep Files
@@ -18,18 +23,41 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Security: Don't persist credentials after checkout
+        persist-credentials: false
       
     - name: Setup Bicep CLI
       run: |
-        # Download and install Bicep CLI directly
+        # Security: Download and install Bicep CLI directly from official GitHub releases
         echo "Installing Bicep CLI..."
-        curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+        
+        # Verify we're downloading from the official Azure/bicep repository
+        BICEP_URL="https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64"
+        echo "Downloading from: $BICEP_URL"
+        
+        # Download with additional security options
+        curl -Lo bicep "$BICEP_URL" \
+          --fail \
+          --silent \
+          --show-error \
+          --location \
+          --retry 3 \
+          --max-time 300
+          
+        # Verify the download was successful and file is not empty
+        if [ ! -s bicep ]; then
+          echo "❌ Failed to download Bicep CLI or file is empty"
+          exit 1
+        fi
+        
+        # Make executable and move to system path
         chmod +x ./bicep
         sudo mv ./bicep /usr/local/bin/bicep
         
-        # Verify installation
+        # Verify installation and show version
         bicep --version
-        echo "Bicep CLI installed successfully"
+        echo "✅ Bicep CLI installed successfully"
         
     - name: Validate Bicep syntax
       run: |
@@ -110,12 +138,42 @@ jobs:
         echo "Checking for @description decorators on parameters..."
         bicep_files=$(find deploy/ -name "*.bicep" -type f)
         for file in $bicep_files; do
-          # Check if all params have descriptions
-          param_count=$(grep -c "^param " "$file" || true)
-          desc_count=$(grep -B1 "^param " "$file" | grep -c "@description" || true)
+          # Get all parameter names
+          params=$(grep "^[[:space:]]*param[[:space:]]" "$file" | sed 's/^[[:space:]]*param[[:space:]]\+\([^[:space:]]*\).*/\1/' || true)
           
-          if [ "$param_count" -gt 0 ] && [ "$desc_count" -lt "$param_count" ]; then
-            echo "⚠️  Warning: $file has parameters without @description decorators"
+          if [ -n "$params" ]; then
+            echo "Checking: $file"
+            missing_count=0
+            
+            while IFS= read -r param_name; do
+              # Check if this parameter has a @description decorator before it
+              param_line=$(grep -n "^[[:space:]]*param[[:space:]]\+$param_name[[:space:]]" "$file" | cut -d: -f1)
+              
+              if [ -n "$param_line" ]; then
+                # Calculate start line (don't go below line 1)
+                start_line=$((param_line - 5))
+                if [ $start_line -lt 1 ]; then
+                  start_line=1
+                fi
+                end_line=$((param_line - 1))
+                
+                # Look for @description in the lines before the parameter
+                if [ $end_line -ge $start_line ]; then
+                  desc_found=$(sed -n "${start_line},${end_line}p" "$file" 2>/dev/null | grep "@description" || true)
+                else
+                  desc_found=""
+                fi
+                
+                if [ -z "$desc_found" ]; then
+                  echo "⚠️  Parameter '$param_name' missing @description decorator"
+                  missing_count=$((missing_count + 1))
+                fi
+              fi
+            done <<< "$params"
+            
+            if [ $missing_count -eq 0 ]; then
+              echo "✅ All parameters in $file have @description decorators"
+            fi
           fi
         done
         
