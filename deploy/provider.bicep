@@ -46,7 +46,7 @@ param password string
 param vmName string = 'vm-pe-test'
 
 @description('Size of the virtual machine.')
-param vmSize string = 'Standard_B2s'
+param vmSize string = 'Standard_B2als_v2'
 
 @description('Enable Application Insights and Log Analytics for monitoring.')
 param enableMonitoring bool = true
@@ -57,7 +57,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: appServicePlanName
   location: location
   sku: {
-    name: 'S1'
+    name: 'P0V3'
     capacity: 1
   }
   properties: {

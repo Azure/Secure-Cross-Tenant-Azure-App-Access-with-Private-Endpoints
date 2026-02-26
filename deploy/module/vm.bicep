@@ -116,7 +116,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       imageReference: {
         publisher: 'microsoftwindowsdesktop'
         offer: 'windows-11'
-        sku: 'win11-24h2-pro' // Windows 11 Pro 24H2
+        sku: 'win11-25h2-pro' // Windows 11 Pro 25H2
         version: 'latest'
       }
       osDisk: {

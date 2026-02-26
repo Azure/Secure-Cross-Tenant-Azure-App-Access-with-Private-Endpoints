@@ -37,7 +37,7 @@ var privateDnsZoneName = 'privatelink.azurewebsites.net'
 param vmName string = 'vm-pe-test'
 
 @description('Size of the virtual machine.')
-param vmSize string = 'Standard_B2s'
+param vmSize string = 'Standard_B2als_v2'
 
 @description('Username for the Virtual Machine.')
 param username string

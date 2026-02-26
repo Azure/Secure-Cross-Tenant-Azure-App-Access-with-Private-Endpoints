@@ -13,12 +13,19 @@ You will need 2 distinct Azure Tenants: one for the "Provider" part and one for 
 
 It is recommended to create a new resource group in each Tenant.
 
-## Provider Tenant: 
+## Step 1: Provider Tenant
   * Deploy via Bicep ``deploy/provider.bicep``
-    * required parameters: the username and password for the Virtual Machine.
+    * e.g. via AZ CLI: 
+    
+      ``az deployment group create --resource-group <resource-group-name> --template-file ./deploy/consumer.bicep --subscription <subscriptionname>``
+    
+    * required parameters: 
+      * the username for the Virtual Machine.
+      * the password for the Virtual Machine.
+
   * The Bicep will deploy
     * a Web App.
-    * a Virtual Network with one Subnet and a Network Security Group allowing RDP access to the Virtual Machine.
+    * a Virtual Network with one Subnet and a Network Security Group allowing RDP access to the Virtual Machine (*).
     * a Virtual Machine in the Subnet to test the Private Endpoint connection the the Web App.
     * the Private DNS Zone linked to the Virtual Network.
     * a Private Endpoint for the Web App with a NIC in the Subnet and registered in the Private DNS Zone. It will automatically be approved and operational.
@@ -28,26 +35,36 @@ The Web App URL is returned as an output variable of the Bicep or you retrieve i
 * Via the public Internet, you will get a 403 Forbidden page.
 * Via the deployed Virtual Machine, you will get the default Web App page.
 
-_Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
+_(*) Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
 
-## Consumer Tenant:
+## Step 2: Consumer Tenant
 Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provider Tenant. It is available as output parameter of the Bicep or you can retrieve it via the portal.
 
   * Deploy via Bicep ``deploy/consumer.bicep``
-    * required parameters: the username and password for the Virtual Machine; the Web App ID of the Provider's Web App.
+    * e.g. via AZ CLI: 
+    
+      ``az deployment group create --resource-group <resource-group-name> --template-file ./deploy/consumer.bicep --subscription <subscriptionname>``
+    
+    * required parameters: 
+      * the username for the Virtual Machine.
+      * the password for the Virtual Machine.
+      * the Resource ID of the Provider's Web App - this can be found in the output after deploying the Provider Tenant or in the properties of the deployed Web App.
 
   * The Bicep will deploy
-    * a Virtual Network with one Subnet and a Network Security Group allowing RDP access to the Virtual Machine.
+    * a Virtual Network with one Subnet and a Network Security Group allowing RDP access to the Virtual Machine (*).
     * a Virtual Machine in the Subnet to test the Private Endpoint connection the the Web App.
     * the Private DNS Zone linked to the Virtual Network
     * a Private Endpoint for the Provider's Web App with a NIC in the Subnet and registered in the Private DNS Zone. The Provider connection state will be 'pending'.
 
-_Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
+_(*) Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
 
-## Manual Approval:
+## Step 3: Connection Approval
 
 After deploying the Consumer Tenant, the Provider must approve the connection.
-This can be done via the Azure Portal, or these AZ CLI commands (cf. ``manual-approval/approve-pending-connection.ps1``):
+
+This can be done via the Azure Portal: Private Link, Pending Connections.
+
+Or via AZ CLI (cf. ``manual-approval/approve-pending-connection.ps1``):
 
 ```powershell
 #to be executed by the PROVIDER
