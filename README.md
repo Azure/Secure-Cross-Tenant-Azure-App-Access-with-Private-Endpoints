@@ -11,14 +11,16 @@ In the overview above, the "Provider" Tenant on the left runs an Azure Web App t
 ## Pre-requisites
 You will need 2 distinct Azure Tenants: one for the "Provider" part and one for the "Consumer" part.
 
-It is recommended to create a new resource group in each Tenant.
+It is recommended to create a new resource group in each subscription. Each subscription must use a different Microsoft Entra ID directory tenant.
 
-## Step 1: Provider Tenant
+## Step 1: Provider subscription (Entra ID directory 1)
   * Deploy via Bicep ``deploy/provider.bicep``
     * e.g. via AZ CLI: 
-    
-      ``az deployment group create --resource-group <resource-group-name> --template-file ./deploy/consumer.bicep --subscription <subscriptionname>``
-    
+
+      ```bash
+      az deployment group create --resource-group <resource-group-name> --template-file ./deploy/consumer.bicep --subscription <subscriptionname>
+      ```
+
     * required parameters: 
       * the username for the Virtual Machine.
       * the password for the Virtual Machine.
@@ -37,14 +39,16 @@ The Web App URL is returned as an output variable of the Bicep or you retrieve i
 
 _(*) Warning: it is not recommended to expose the RDP management port 3386 on the Internet. For production environments, we recommend using a VPN or private connection._
 
-## Step 2: Consumer Tenant
+## Step 2: Consumer subscription (Entra ID directory 2)
 Next, to deploy the Consumer Tenant, get the deployed Web App Id from the Provider Tenant. It is available as output parameter of the Bicep or you can retrieve it via the portal.
 
   * Deploy via Bicep ``deploy/consumer.bicep``
     * e.g. via AZ CLI: 
-    
-      ``az deployment group create --resource-group <resource-group-name> --template-file ./deploy/consumer.bicep --subscription <subscriptionname>``
-    
+
+      ```bash
+      az deployment group create --resource-group <resource-group-name> --template-file ./deploy/consumer.bicep --subscription <subscriptionname>
+      ```
+
     * required parameters: 
       * the username for the Virtual Machine.
       * the password for the Virtual Machine.
@@ -64,7 +68,7 @@ After deploying the Consumer Tenant, the Provider must approve the connection.
 
 This can be done via the Azure Portal: Private Link, Pending Connections.
 
-Or via AZ CLI (cf. ``manual-approval/approve-pending-connection.ps1``):
+Or it can be done with this AZ CLI command, `manual-approval/approve-pending-connection.ps1`.
 
 ```powershell
 #to be executed by the PROVIDER
@@ -82,7 +86,8 @@ az network private-endpoint-connection approve --description "Approved" --id $pe
 ```
 
 ## Clean-up
-Delete the resource group in each Tenant.
+
+Delete the resource group in each subscription.
 
 ## Contributing
 
